@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="欠款清单">
+<meta name="theme-color" content="#4f6bed">
+<title>欠款清单</title>
+<style>
+  *{box-sizing:border-box;}
+  :root{
+    --bg:#f5f7fb; --card:#fff; --primary:#4f6bed; --primary-soft:#eef1fe;
+    --green:#16a34a; --green-soft:#eaf9f0;
+    --red:#e05252; --red-soft:rgba(224,82,82,.07);
+    --orange:#ea8c1f;
+    --text:#1f2937; --muted:#8b95a5;
+    --border:#e2e6ef; --input-bg:#fafbfe;
+    --shadow:0 1px 3px rgba(16,24,40,.06);
+    --shadow-hover:0 4px 14px rgba(16,24,40,.09);
+  }
+  body.dark{
+    --bg:#0f1420; --card:#1a2233; --primary:#6b8cff; --primary-soft:#243049;
+    --green:#22c55e; --green-soft:#14301f;
+    --red:#f87171; --red-soft:rgba(248,113,113,.1);
+    --orange:#fbbf24;
+    --text:#e5e9f0; --muted:#7c8698;
+    --border:#2a3348; --input-bg:#141b28;
+    --shadow:0 1px 3px rgba(0,0,0,.3);
+    --shadow-hover:0 4px 14px rgba(0,0,0,.4);
+  }
+  body{
+    margin:0; padding:20px 14px 90px;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--bg); color:var(--text);
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+    transition:background .25s, color .25s;
+  }
+  .app{max-width:700px;margin:0 auto;}
+
+  /* ===== 头部 ===== */
+  .head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:16px;}
+  h1{font-size:22px;margin:0 0 4px;}
+  .sub{margin:0;color:var(--muted);font-size:12.5px;line-height:1.7;}
+  #themeBtn{
+    flex:0 0 auto;width:38px;height:38px;border-radius:12px;border:1px solid var(--border);
+    background:var(--card);cursor:pointer;font-size:17px;line-height:1;
+    display:flex;align-items:center;justify-content:center;transition:.15s;
+  }
+  #themeBtn:hover{border-color:var(--primary);background:var(--primary-soft);}
+
+  /* ===== 汇总卡 ===== */
+  .summary{
+    background:linear-gradient(135deg,#4f6bed,#6b8cff);
+    color:#fff;border-radius:16px;padding:20px;
+    box-shadow:0 8px 24px rgba(79,107,237,.25);
+    margin-bottom:14px;
+  }
+  .summary .label{font-size:12px;opacity:.85;margin-bottom:6px;}
+  .summary .big{font-size:30px;font-weight:700;letter-spacing:.5px;font-variant-numeric:tabular-nums;}
+  .bar{height:8px;border-radius:99px;background:rgba(255,255,255,.25);margin-top:16px;overflow:hidden;}
+  .bar i{display:block;height:100%;width:0;background:#fff;border-radius:99px;transition:width .35s ease;}
+  .stats{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;}
+  .stat{flex:1 1 88px;background:rgba(255,255,255,.16);border-radius:10px;padding:9px 11px;min-width:0;}
+  .stat .k{font-size:11px;opacity:.85;white-space:nowrap;}
+  .stat .v{font-size:14.5px;font-weight:600;margin-top:3px;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+  /* ===== 工具栏 ===== */
+  .toolbar{
+    display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;
+  }
+  .toolbar .search-wrap{flex:1 1 100%;position:relative;}
+  .toolbar .search-wrap::before{
+    content:'🔍';position:absolute;left:12px;top:50%;transform:translateY(-50%);
+    font-size:13px;opacity:.5;pointer-events:none;
+  }
+  .toolbar input[type="search"]{
+    width:100%;padding:10px 12px 10px 34px;border-radius:11px;
+    border:1px solid var(--border);background:var(--card);
+    font-size:14px;font-family:inherit;color:var(--text);outline:none;transition:.15s;
+    -webkit-appearance:none;
+  }
+  .toolbar input[type="search"]::-webkit-search-cancel-button{-webkit-appearance:none;}
+  .toolbar select{
+    flex:1 1 0;min-width:0;padding:10px 10px;border-radius:11px;
+    border:1px solid var(--border);background:var(--card);
+    font-size:13px;font-family:inherit;color:var(--text);outline:none;cursor:pointer;
+    transition:.15s;appearance:none;
+    background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+    background-position:calc(100% - 15px) 50%, calc(100% - 10px) 50%;
+    background-size:5px 5px,5px 5px;
+    background-repeat:no-repeat;
+    padding-right:28px;
+  }
+  .toolbar input:focus,.toolbar select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,107,237,.12);}
+
+  /* ===== 列表 ===== */
+  ul{list-style:none;margin:0;padding:0;}
+  .item{
+    display:flex;align-items:center;gap:6px;
+    background:var(--card);border-radius:14px;padding:11px 12px;
+    margin-bottom:10px;box-shadow:var(--shadow);
+    border:1px solid transparent;border-left:3px solid transparent;
+    transition:background .18s, box-shadow .18s, border-color .18s, transform .18s;
+    will-change:transform;
+  }
+  .item:hover{box-shadow:var(--shadow-hover);}
+  .item.overdue{border-left-color:var(--red);background:var(--red-soft);}
+  .item.soon{border-left-color:var(--orange);}
+
+  /* 拖拽手柄 */
+  .handle{
+    flex:0 0 auto;width:22px;height:34px;border:none;background:transparent;
+    color:#c6ccd8;font-size:15px;line-height:1;cursor:grab;padding:0;border-radius:7px;
+    display:flex;align-items:center;justify-content:center;
+    touch-action:none;user-select:none;-webkit-user-select:none;
+    transition:color .15s, background .15s;
+  }
+  .handle:hover{color:var(--primary);background:var(--primary-soft);}
+  .handle:active{cursor:grabbing;}
+  .handle.disabled{opacity:.25;cursor:not-allowed;}
+
+  /* 打钩 */
+  .check{
+    flex:0 0 auto;width:26px;height:26px;border-radius:50%;
+    border:2px solid #cfd6e4;background:var(--card);cursor:pointer;padding:0;
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;font-size:14px;line-height:1;transition:.18s;
+  }
+  .check:hover{border-color:var(--green);}
+  .check span{transform:scale(0);transition:transform .18s;}
+  .item.paid .check{background:var(--green);border-color:var(--green);}
+  .item.paid .check span{transform:scale(1);}
+
+  .info{flex:1;min-width:0;cursor:text;padding:0 2px;}
+  .name{font-size:14.5px;font-weight:600;word-break:break-all;line-height:1.35;}
+  .meta{
+    font-size:11.5px;color:var(--muted);margin-top:4px;
+    display:flex;flex-wrap:wrap;gap:4px 7px;align-items:center;
+  }
+  .meta .tag{
+    background:var(--primary-soft);color:var(--primary);
+    padding:1.5px 7px;border-radius:99px;font-size:10.5px;font-weight:600;
+  }
+  .meta .due.overdue{color:var(--red);font-weight:600;}
+  .meta .due.soon{color:var(--orange);font-weight:600;}
+  .meta .dot{opacity:.35;}
+
+  .amount{
+    flex:0 0 auto;text-align:right;
+    font-size:15.5px;font-weight:700;color:var(--red);white-space:nowrap;
+    font-variant-numeric:tabular-nums;line-height:1.2;
+  }
+  .amount small{display:block;font-size:10.5px;font-weight:500;color:var(--muted);margin-top:2px;}
+  .item.paid .amount{color:var(--green);}
+  .item.paid .amount::after{content:'已还清';display:block;font-size:10.5px;font-weight:600;color:var(--green);margin-top:2px;}
+  .item.paid .name{text-decoration:line-through;color:#9aa3b2;}
+
+  .icon-btn{
+    flex:0 0 auto;border:none;background:transparent;
+    font-size:15px;line-height:1;cursor:pointer;
+    padding:5px 4px;border-radius:7px;transition:.15s;color:#b8c1d1;
+  }
+  .copy:hover{color:var(--primary);background:var(--primary-soft);}
+  .edit:hover{color:var(--primary);background:var(--primary-soft);}
+  .del{font-size:18px;color:#c6ccd8;}
+  .del:hover{color:var(--red);background:var(--red-soft);}
+
+  /* 拖拽中 */
+  .item.dragging{
+    background:var(--primary-soft);border-color:#c7d2fe;
+    box-shadow:0 12px 28px rgba(79,107,237,.25);
+    transform:scale(1.015);z-index:50;position:relative;
+  }
+  body.is-dragging{cursor:grabbing;user-select:none;-webkit-user-select:none;}
+
+  /* ===== 编辑模式 ===== */
+  .item.editing{display:block;background:var(--input-bg);border-color:#dbe2fb;box-shadow:0 4px 16px rgba(79,107,237,.14);}
+  .edit-form .row{display:flex;gap:8px;}
+  .edit-form .row + .row{margin-top:8px;}
+  .edit-form input,.edit-form select{
+    flex:1 1 0;min-width:0;padding:9px 11px;border-radius:9px;
+    border:1px solid var(--border);font-size:13.5px;font-family:inherit;
+    background:var(--card);color:var(--text);outline:none;transition:.15s;
+  }
+  .edit-form input:focus,.edit-form select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,107,237,.12);}
+  .edit-form .field{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:3px;}
+  .edit-form .field-label{font-size:10.5px;color:var(--muted);padding-left:2px;}
+  .edit-form .row .btn{flex:0 0 auto;}
+  input[type="date"]{color-scheme:light;min-height:38px;}
+  body.dark input[type="date"]{color-scheme:dark;}
+
+  /* ===== 空状态 ===== */
+  .empty{
+    text-align:center;color:var(--muted);font-size:14px;padding:36px 10px;
+    background:var(--card);border-radius:14px;border:1px dashed var(--border);
+  }
+  .empty b{display:block;font-size:24px;margin-bottom:8px;opacity:.5;}
+
+  /* ===== 添加表单 ===== */
+  .add{
+    margin-top:16px;background:var(--card);border-radius:14px;padding:16px;
+    box-shadow:var(--shadow);
+  }
+  .add h2{font-size:12.5px;margin:0 0 12px;color:var(--muted);font-weight:600;letter-spacing:.5px;}
+  .row{display:flex;gap:8px;flex-wrap:wrap;}
+  .add .row + .row{margin-top:8px;}
+  .add input,.add select{
+    flex:1 1 130px;min-width:0;padding:11px 12px;border-radius:10px;
+    border:1px solid var(--border);font-size:14px;font-family:inherit;
+    background:var(--input-bg);color:var(--text);outline:none;transition:.15s;
+  }
+  .add select{flex:0 1 110px;cursor:pointer;}
+  .add input[type="date"]{flex:0 1 145px;}
+  .add input:focus,.add select:focus{border-color:var(--primary);background:var(--card);box-shadow:0 0 0 3px rgba(79,107,237,.12);}
+  .btn{
+    flex:0 0 auto;padding:11px 22px;border-radius:10px;border:none;
+    background:var(--primary);color:#fff;font-size:14px;font-weight:600;
+    cursor:pointer;font-family:inherit;transition:.15s;
+  }
+  .btn:hover{filter:brightness(1.08);}
+  .btn:active{transform:scale(.98);}
+  .btn.small{padding:9px 16px;font-size:13px;}
+
+  /* ===== 底部 ===== */
+  .foot{
+    display:flex;justify-content:space-between;align-items:center;
+    margin-top:16px;font-size:12px;color:var(--muted);gap:10px;flex-wrap:wrap;
+  }
+  .foot-left{display:flex;gap:12px;flex-wrap:wrap;}
+  .link{background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;text-decoration:underline;font-family:inherit;padding:0;}
+  .link:hover{color:var(--red);}
+  .link.primary:hover{color:var(--primary);}
+
+  /* ===== Toast ===== */
+  #toast{
+    position:fixed;left:50%;bottom:32px;transform:translateX(-50%) translateY(16px);
+    background:rgba(28,33,48,.94);color:#fff;padding:10px 22px;border-radius:99px;
+    font-size:13px;opacity:0;pointer-events:none;transition:.22s;z-index:999;
+    box-shadow:0 6px 20px rgba(0,0,0,.25);white-space:nowrap;
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  /* ===== 响应式 ===== */
+  @media (max-width:420px){
+    body{padding:16px 10px 90px;}
+    .summary{padding:16px;border-radius:14px;}
+    .summary .big{font-size:25px;}
+    .stat .v{font-size:13.5px;}
+    .item{gap:4px;padding:10px 9px;}
+    .handle{width:18px;}
+    .icon-btn{padding:5px 3px;font-size:14px;}
+    .del{font-size:17px;}
+    .amount{font-size:14.5px;}
+    .name{font-size:14px;}
+  }
+
+  /* ===== 打印 ===== */
+  @media print{
+    @page{margin:14mm;}
+    body{padding:0;background:#fff !important;color:#000 !important;}
+    .head .sub,#themeBtn,.toolbar,.add,.foot,.handle,.check,.icon-btn{display:none !important;}
+    h1{font-size:20px;margin-bottom:14px !important;}
+    .summary{
+      background:#f2f4fa !important;color:#000 !important;
+      box-shadow:none !important;border:1px solid #ddd;border-radius:8px;
+      -webkit-print-color-adjust:exact;print-color-adjust:exact;
+    }
+    .summary .label,.summary .big,.stat .k,.stat .v{color:#000 !important;}
+    .stat{background:#e8ebf5 !important;}
+    .bar{background:#dfe2ea !important;}
+    .bar i{background:#4f6bed !important;}
+    .item{
+      box-shadow:none !important;border:1px solid #e0e0e0 !important;
+      border-left:3px solid #ccc !important;page-break-inside:avoid;
+      -webkit-print-color-adjust:exact;print-color-adjust:exact;
+    }
+    .item.overdue{border-left-color:#e05252 !important;}
+    .item.soon{border-left-color:#ea8c1f !important;}
+    .item.paid{background:#eaf9f0 !important;}
+    .print-only{display:block !important;}
+  }
+  .print-only{display:none;font-size:11px;color:#888;margin-bottom:10px;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="head">
+    <div>
+      <h1>欠款清单</h1>
+      <p class="sub">
+        点 ✓ 打钩还清（自动下移）· 按住 ⠿ 拖动排序<br>
+        点 ✎ 或双击文字修改 · 点 📋 一键复制催款信息
+      </p>
+    </div>
+    <button id="themeBtn" title="切换夜间模式">🌙</button>
+  </div>
+
+  <!-- 汇总 -->
+  <div class="summary">
+    <div class="label">剩余未还</div>
+    <div class="big" id="left">¥0.00</div>
+    <div class="bar"><i id="bar"></i></div>
+    <div class="stats">
+      <div class="stat"><div class="k">总欠款</div><div class="v" id="total">¥0.00</div></div>
+      <div class="stat"><div class="k">已还清</div><div class="v" id="paid">¥0.00</div></div>
+      <div class="stat"><div class="k">进度</div><div class="v" id="count">0 / 0 项</div></div>
+      <div class="stat"><div class="k">未还笔数</div><div class="v" id="unpaidCount">0 笔</div></div>
+    </div>
+  </div>
+
+  <!-- 工具栏 -->
+  <div class="toolbar">
+    <div class="search-wrap">
+      <input id="search" type="search" placeholder="搜索名字 / 备注 / 分类…">
+    </div>
+    <select id="sortSel" title="排序方式">
+      <option value="default">默认顺序</option>
+      <option value="amount-desc">金额 高→低</option>
+      <option value="amount-asc">金额 低→高</option>
+      <option value="date-desc">日期 新→旧</option>
+      <option value="date-asc">日期 旧→新</option>
+      <option value="due">按还款日</option>
+    </select>
+    <select id="catSel" title="按分类筛选">
+      <option value="all">全部分类</option>
+      <option value="借款">借款</option>
+      <option value="货款">货款</option>
+      <option value="代付">代付</option>
+      <option value="其他">其他</option>
+      <option value="__none">无分类</option>
+    </select>
+  </div>
+
+  <div class="print-only" id="printDate"></div>
+
+  <ul id="list"></ul>
+
+  <!-- 添加 -->
+  <form class="add" id="addForm">
+    <h2>＋ 添加一笔欠款</h2>
+    <div class="row">
+      <input id="f-name" type="text" placeholder="谁欠的 / 什么事（如：张三 借款）">
+      <input id="f-amount" type="number" step="0.01" min="0" placeholder="金额" style="flex:0 1 120px">
+    </div>
+    <div class="row">
+      <select id="f-cat">
+        <option value="">分类</option>
+        <option>借款</option>
+        <option>货款</option>
+        <option>代付</option>
+        <option>其他</option>
+      </select>
+      <input id="f-date" type="date" title="借款日期">
+      <input id="f-due" type="date" title="约定还款日">
+    </div>
+    <div class="row">
+      <input id="f-note" type="text" placeholder="备注（可选）">
+      <button class="btn" type="submit">添加</button>
+    </div>
+  </form>
+
+  <div class="foot">
+    <div class="foot-left">
+      <button class="link primary" id="exportBtn" type="button">导出备份</button>
+      <button class="link primary" id="importBtn" type="button">导入恢复</button>
+      <button class="link primary" id="printBtn" type="button">打印 / PDF</button>
+      <button class="link" id="clearAll" type="button">清空全部</button>
+    </div>
+    <span>数据只存本机，注意备份</span>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  const KEY = 'debt-list-v2';        // 新版数据键（旧版 v1 可导入迁移）
+  const OLD_KEY = 'debt-list-v1';
+  const listEl = document.getElementById('list');
+
+  let items = load();
+  let editingId = null;
+  let drag = null;
+  let searchQuery = '';
+  let sortMode = 'default';
+  let catFilter = 'all';
+
+  /* ================= 工具 ================= */
+  function uid(){
+    return Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+  }
+  function money(n){
+    const v = Number(n) || 0;
+    return '¥' + v.toLocaleString('zh-CN', {minimumFractionDigits:2, maximumFractionDigits:2});
+  }
+  function todayStr(){
+    const d = new Date();
+    return d.getFullYear() + '-' +
+           String(d.getMonth()+1).padStart(2,'0') + '-' +
+           String(d.getDate()).padStart(2,'0');
+  }
+  function remain(it){
+    return Math.max(0, (Number(it.amount)||0) - (Number(it.paidAmount)||0));
+  }
+  function toast(msg){
+    let el = document.getElementById('toast');
+    if(!el){
+      el = document.createElement('div');
+      el.id = 'toast';
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(el._t);
+    el._t = setTimeout(function(){ el.classList.remove('show'); }, 1700);
+  }
+
+  /* ================= 数据 ================= */
+  function load(){
+    try{
+      const r = localStorage.getItem(KEY);
+      if(r) return normalize(JSON.parse(r));
+    }catch(e){}
+    // 尝试从旧版迁移
+    try{
+      const old = localStorage.getItem(OLD_KEY);
+      if(old){
+        const data = normalize(JSON.parse(old));
+        try{ localStorage.setItem(KEY, JSON.stringify(data)); }catch(e){}
+        return data;
+      }
+    }catch(e){}
+    return [];
+  }
+  function normalize(arr){
+    if(!Array.isArray(arr)) return [];
+    return arr.map(function(it){
+      const amount = Number(it.amount) || 0;
+      let paidAmount = Number(it.paidAmount);
+      if(isNaN(paidAmount)) paidAmount = it.paid ? amount : 0;
+      paidAmount = Math.min(Math.max(paidAmount, 0), amount);
+      const paid = !!it.paid || (amount > 0 && paidAmount >= amount);
+      return {
+        id: it.id || uid(),
+        name: String(it.name || '未命名'),
+        amount: amount,
+        paidAmount: paid ? amount : paidAmount,
+        category: String(it.category || ''),
+        date: String(it.date || ''),
+        dueDate: String(it.dueDate || ''),
+        note: String(it.note || ''),
+        paid: paid,
+        createdAt: it.createdAt || Date.now()
+      };
+    });
+  }
+  function save(){
+    try{ localStorage.setItem(KEY, JSON.stringify(items)); }catch(e){}
+  }
+
+  /* ================= 到期状态 ================= */
+  function dueStatus(it){
+    if(it.paid || !it.dueDate) return '';
+    const t = new Date(); t.setHours(0,0,0,0);
+    const d = new Date(it.dueDate + 'T00:00:00');
+    if(isNaN(d.getTime())) return '';
+    const diff = Math.round((d - t) / 86400000);
+    if(diff < 0) return 'overdue';
+    if(diff <= 7) return 'soon';
+    return '';
+  }
+
+  /* ================= 排序 / 筛选 ================= */
+  function getDisplayItems(){
+    let list = items.slice();
+
+    // 搜索
+    if(searchQuery){
+      const q = searchQuery.toLowerCase();
+      list = list.filter(function(it){
+        return (it.name || '').toLowerCase().indexOf(q) >= 0 ||
+               (it.note || '').toLowerCase().indexOf(q) >= 0 ||
+               (it.category || '').toLowerCase().indexOf(q) >= 0;
+      });
+    }
+
+    // 分类筛选
+    if(catFilter !== 'all'){
+      if(catFilter === '__none'){
+        list = list.filter(function(it){ return !it.category; });
+      }else{
+        list = list.filter(function(it){ return it.category === catFilter; });
+      }
+    }
+
+    // 排序
+    if(sortMode === 'amount-desc'){
+      list.sort(function(a,b){ return remain(b) - remain(a); });
+    }else if(sortMode === 'amount-asc'){
+      list.sort(function(a,b){ return remain(a) - remain(b); });
+    }else if(sortMode === 'date-desc'){
+      list.sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
+    }else if(sortMode === 'date-asc'){
+      list.sort(function(a,b){ return (a.date||'').localeCompare(b.date||''); });
+    }else if(sortMode === 'due'){
+      list.sort(function(a,b){
+        const da = a.dueDate || '9999-99-99';
+        const db = b.dueDate || '9999-99-99';
+        return da.localeCompare(db);
+      });
+    }else{
+      // 默认：未还清在前，已还清在后（稳定排序保留手动顺序）
+      list.sort(function(a,b){ return (a.paid?1:0) - (b.paid?1:0); });
+    }
+
+    return list;
+  }
+
+  // 打钩后重新分组（未还清在前、已还清在后），组内保持原顺序
+  function autoSortByPaid(){
+    items.sort(function(a,b){ return (a.paid?1:0) - (b.paid?1:0); });
+  }
+
+  /* ================= 渲染 ================= */
+  function render(){
+    const display = getDisplayItems();
+    listEl.innerHTML = '';
+
+    if(!items.length){
+      const li = document.createElement('li');
+      li.className = 'empty';
+      li.innerHTML = '<b>📋</b>还没有记录，在下面添加第一笔吧';
+      listEl.appendChild(li);
+    }else if(!display.length){
+      const li = document.createElement('li');
+      li.className = 'empty';
+      li.innerHTML = '<b>🔍</b>没有匹配的记录<br><span style="font-size:12px">试试清空搜索或切换筛选条件</span>';
+      listEl.appendChild(li);
+    }else{
+      display.forEach(function(it){
+        listEl.appendChild(it.id === editingId ? makeEditItem(it) : makeItem(it));
+      });
+    }
+    updateSummary();
+    updateHandleState();
+  }
+
+  /* --- 普通项 --- */
+  function makeItem(it){
+    const li = document.createElement('li');
+    const ds = dueStatus(it);
+    li.className = 'item' + (it.paid ? ' paid' : '') + (ds ? ' ' + ds : '');
+    li.dataset.id = it.id;
+
+    /* 拖拽手柄 */
+    const handle = document.createElement('button');
+    handle.type = 'button';
+    handle.className = 'handle';
+    handle.title = '按住上下拖动排序';
+    handle.textContent = '⠿';
+    handle.addEventListener('pointerdown', function(e){ startDrag(e, it, li); });
+    handle.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); });
+
+    /* 打钩 */
+    const check = document.createElement('button');
+    check.type = 'button';
+    check.className = 'check';
+    check.title = it.paid ? '点击取消打钩' : '点击表示已还清';
+    check.innerHTML = '<span>✓</span>';
+    check.addEventListener('click', function(){
+      if(it.paid){
+        it.paid = false;
+        it.paidAmount = 0;
+      }else{
+        it.paid = true;
+        it.paidAmount = it.amount;
+      }
+      autoSortByPaid();
+      save(); render();
+    });
+
+    /* 信息 */
+    const info = document.createElement('div');
+    info.className = 'info';
+    info.title = '双击可修改';
+
+    const name = document.createElement('div');
+    name.className = 'name';
+    name.textContent = it.name;
+    info.appendChild(name);
+
+    const metas = [];
+    if(it.category) metas.push('<span class="tag">' + esc(it.category) + '</span>');
+    if(it.date) metas.push('<span>' + esc(it.date) + '</span>');
+    if(it.dueDate && !it.paid){
+      const cls = ds === 'overdue' ? 'due overdue' : (ds === 'soon' ? 'due soon' : 'due');
+      const pre = ds === 'overdue' ? '⚠️ 已逾期 ' : (ds === 'soon' ? '⏰ 即将到期 ' : '应还 ');
+      metas.push('<span class="' + cls + '">' + pre + esc(it.dueDate) + '</span>');
+    }
+    if(it.note) metas.push('<span>' + esc(it.note) + '</span>');
+    if(metas.length){
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      meta.innerHTML = metas.join('<span class="dot">·</span>');
+      info.appendChild(meta);
+    }
+    info.addEventListener('dblclick', function(){
+      editingId = it.id;
+      render();
+    });
+
+    /* 金额 */
+    const amount = document.createElement('div');
+    amount.className = 'amount';
+    if(it.paid){
+      amount.textContent = money(it.amount);
+    }else if(it.paidAmount > 0){
+      amount.innerHTML = money(remain(it)) +
+        '<small>已还 ' + money(it.paidAmount) + '</small>';
+    }else{
+      amount.textContent = money(it.amount);
+    }
+
+    /* 复制 */
+    const copy = document.createElement('button');
+    copy.type = 'button';
+    copy.className = 'icon-btn copy';
+    copy.textContent = '📋';
+    copy.title = '复制这条信息';
+    copy.addEventListener('click', function(){ copyItem(it); });
+
+    /* 编辑 */
+    const edit = document.createElement('button');
+    edit.type = 'button';
+    edit.className = 'icon-btn edit';
+    edit.textContent = '✎';
+    edit.title = '修改这一项';
+    edit.addEventListener('click', function(){
+      editingId = it.id;
+      render();
+    });
+
+    /* 删除 */
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'icon-btn del';
+    del.textContent = '×';
+    del.title = '删除这一项';
+    del.addEventListener('click', function(){
+      if(confirm('确定删除「' + it.name + '」这一项吗？')){
+        items = items.filter(function(x){ return x.id !== it.id; });
+        if(editingId === it.id) editingId = null;
+        save(); render();
+      }
+    });
+
+    li.appendChild(handle);
+    li.appendChild(check);
+    li.appendChild(info);
+    li.appendChild(amount);
+    li.appendChild(copy);
+    li.appendChild(edit);
+    li.appendChild(del);
+    return li;
+  }
+
+  function esc(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  /* --- 编辑项 --- */
+  function makeEditItem(it){
+    const li = document.createElement('li');
+    li.className = 'item editing';
+    li.dataset.id = it.id;
+
+    const form = document.createElement('div');
+    form.className = 'edit-form';
+
+    // 第 1 行：名称 + 金额
+    const r1 = document.createElement('div');
+    r1.className = 'row';
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.value = it.name;
+    nameInput.placeholder = '谁欠的 / 什么事';
+    nameInput.style.flex = '2 1 0';
+
+    const amtInput = document.createElement('input');
+    amtInput.type = 'number';
+    amtInput.step = '0.01';
+    amtInput.min = '0';
+    amtInput.value = it.amount;
+    amtInput.placeholder = '总金额';
+    r1.appendChild(nameInput);
+    r1.appendChild(amtInput);
+
+    // 第 2 行：已还 + 分类
+    const r2 = document.createElement('div');
+    r2.className = 'row';
+    const paidInput = document.createElement('input');
+    paidInput.type = 'number';
+    paidInput.step = '0.01';
+    paidInput.min = '0';
+    paidInput.value = it.paidAmount || 0;
+    paidInput.placeholder = '已还金额';
+
+    const catInput = document.createElement('select');
+    ['', '借款', '货款', '代付', '其他'].forEach(function(c){
+      const o = document.createElement('option');
+      o.value = c;
+      o.textContent = c || '无分类';
+      if(c === it.category) o.selected = true;
+      catInput.appendChild(o);
+    });
+    r2.appendChild(paidInput);
+    r2.appendChild(catInput);
+
+    // 第 3 行：借款日期 + 约定还款
+    const r3 = document.createElement('div');
+    r3.className = 'row';
+    const fDate = document.createElement('div');
+    fDate.className = 'field';
+    fDate.innerHTML = '<span class="field-label">借款日期</span>';
+    const dateInput = document.createElement('input');
+    dateInput.type = 'date';
+    dateInput.value = it.date || '';
+    fDate.appendChild(dateInput);
+
+    const fDue = document.createElement('div');
+    fDue.className = 'field';
+    fDue.innerHTML = '<span class="field-label">约定还款</span>';
+    const dueInput = document.createElement('input');
+    dueInput.type = 'date';
+    dueInput.value = it.dueDate || '';
+    fDue.appendChild(dueInput);
+
+    r3.appendChild(fDate);
+    r3.appendChild(fDue);
+
+    // 第 4 行：备注 + 完成
+    const r4 = document.createElement('div');
+    r4.className = 'row';
+    const noteInput = document.createElement('input');
+    noteInput.type = 'text';
+    noteInput.value = it.note || '';
+    noteInput.placeholder = '备注（可选）';
+
+    const done = document.createElement('button');
+    done.type = 'button';
+    done.className = 'btn small';
+    done.textContent = '完成';
+    r4.appendChild(noteInput);
+    r4.appendChild(done);
+
+    form.appendChild(r1);
+    form.appendChild(r2);
+    form.appendChild(r3);
+    form.appendChild(r4);
+    li.appendChild(form);
+
+    /* 输入同步 */
+    nameInput.addEventListener('input', function(){ it.name = nameInput.value; save(); });
+    amtInput.addEventListener('input', function(){
+      it.amount = parseFloat(amtInput.value) || 0;
+      save(); updateSummary();
+    });
+    paidInput.addEventListener('input', function(){
+      it.paidAmount = parseFloat(paidInput.value) || 0;
+      save(); updateSummary();
+    });
+    catInput.addEventListener('change', function(){ it.category = catInput.value; save(); });
+    dateInput.addEventListener('change', function(){ it.date = dateInput.value; save(); });
+    dueInput.addEventListener('change', function(){ it.dueDate = dueInput.value; save(); });
+    noteInput.addEventListener('input', function(){ it.note = noteInput.value; save(); });
+
+    /* 完成 */
+    function finish(){
+      if(!nameInput.value.trim()){ alert('名称不能为空'); nameInput.focus(); return; }
+      const amt = parseFloat(amtInput.value);
+      if(!(amt > 0)){ alert('金额必须大于 0'); amtInput.focus(); return; }
+
+      it.name = nameInput.value.trim();
+      it.amount = amt;
+
+      let p = parseFloat(paidInput.value) || 0;
+      p = Math.min(Math.max(p, 0), amt);
+      it.paidAmount = p;
+      it.paid = (p >= amt);
+
+      it.category = catInput.value;
+      it.date = dateInput.value;
+      it.dueDate = dueInput.value;
+      it.note = noteInput.value.trim();
+
+      editingId = null;
+      autoSortByPaid();
+      save(); render();
+    }
+    done.addEventListener('click', finish);
+    [nameInput, amtInput, paidInput, noteInput].forEach(function(inp){
+      inp.addEventListener('keydown', function(e){
+        if(e.key === 'Enter'){ e.preventDefault(); finish(); }
+      });
+    });
+
+    setTimeout(function(){ nameInput.focus(); nameInput.select(); }, 0);
+    return li;
+  }
+
+  /* ================= 拖拽排序 ================= */
+  function dragAllowed(){
+    return sortMode === 'default' && !searchQuery && catFilter === 'all' && !editingId;
+  }
+  function updateHandleState(){
+    const ok = dragAllowed();
+    Array.prototype.forEach.call(listEl.querySelectorAll('.handle'), function(h){
+      h.classList.toggle('disabled', !ok);
+      h.title = ok ? '按住上下拖动排序' : '请先切回「默认顺序」并清空搜索/筛选';
+    });
+  }
+
+  function startDrag(e, it, li){
+    if(e.button !== undefined && e.button !== 0) return;
+    if(drag) return;
+    if(!dragAllowed()){
+      toast('请先切回默认顺序，并清空搜索和筛选');
+      return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+
+    drag = { li: li, id: it.id };
+    li.classList.add('dragging');
+    document.body.classList.add('is-dragging');
+
+    document.addEventListener('touchmove', preventScroll, {passive:false});
+    window.addEventListener('pointermove', onDragMove, {passive:false});
+    window.addEventListener('pointerup', onDragEnd);
+    window.addEventListener('pointercancel', onDragEnd);
+  }
+  function preventScroll(e){ if(drag) e.preventDefault(); }
+
+  function onDragMove(e){
+    if(!drag) return;
+    e.preventDefault();
+    const y = e.clientY;
+    const li = drag.li;
+    const others = Array.prototype.filter.call(listEl.children, function(el){
+      return el.classList && el.classList.contains('item') && el !== li;
+    });
+    let target = null;
+    for(let i = 0; i < others.length; i++){
+      const r = others[i].getBoundingClientRect();
+      if(y < r.top + r.height / 2){ target = others[i]; break; }
+    }
+    if(target){
+      if(li.nextElementSibling !== target) listEl.insertBefore(li, target);
+    }else{
+      if(listEl.lastElementChild !== li) listEl.appendChild(li);
+    }
+  }
+
+  function onDragEnd(){
+    if(!drag) return;
+    const li = drag.li;
+    li.classList.remove('dragging');
+    document.body.classList.remove('is-dragging');
+
+    document.removeEventListener('touchmove', preventScroll);
+    window.removeEventListener('pointermove', onDragMove);
+    window.removeEventListener('pointerup', onDragEnd);
+    window.removeEventListener('pointercancel', onDragEnd);
+    drag = null;
+
+    const order = Array.prototype.map.call(listEl.children, function(el){
+      return el.dataset ? el.dataset.id : undefined;
+    });
+    items.sort(function(a, b){
+      const ia = order.indexOf(a.id), ib = order.indexOf(b.id);
+      if(ia === -1 && ib === -1) return 0;
+      if(ia === -1) return 1;
+      if(ib === -1) return -1;
+      return ia - ib;
+    });
+    save(); render();
+  }
+
+  /* ================= 汇总 ================= */
+  function updateSummary(){
+    let total = 0, paidSum = 0, unpaidCount = 0;
+    items.forEach(function(i){
+      const a = Number(i.amount) || 0;
+      const p = Math.min(Number(i.paidAmount) || 0, a);
+      total += a;
+      paidSum += p;
+      if(!i.paid) unpaidCount++;
+    });
+    const left = total - paidSum;
+    const pct = total > 0 ? (paidSum / total * 100) : 0;
+    const doneCount = items.length - unpaidCount;
+
+    document.getElementById('left').textContent = money(left);
+    document.getElementById('total').textContent = money(total);
+    document.getElementById('paid').textContent = money(paidSum);
+    document.getElementById('count').textContent = doneCount + ' / ' + items.length + ' 项';
+    document.getElementById('unpaidCount').textContent = unpaidCount + ' 笔';
+    document.getElementById('bar').style.width = pct.toFixed(1) + '%';
+  }
+
+  /* ================= 复制单条 ================= */
+  function copyItem(it){
+    const lines = [];
+    lines.push('【' + it.name + '】');
+    if(!it.paid && it.paidAmount > 0){
+      lines.push('总金额：' + money(it.amount));
+      lines.push('已还：' + money(it.paidAmount));
+      lines.push('剩余：' + money(remain(it)));
+    }else{
+      lines.push('金额：' + money(it.amount));
+    }
+    if(it.category) lines.push('分类：' + it.category);
+    if(it.date) lines.push('借款日期：' + it.date);
+    if(it.dueDate) lines.push('约定还款：' + it.dueDate);
+    if(it.note) lines.push('备注：' + it.note);
+    lines.push('状态：' + (it.paid ? '已还清 ✓' : '未还清'));
+
+    const text = lines.join('\n');
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(function(){
+        toast('已复制，可直接发微信');
+      }).catch(function(){ fallbackCopy(text); });
+    }else{
+      fallbackCopy(text);
+    }
+  }
+  function fallbackCopy(text){
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    try{ document.execCommand('copy'); toast('已复制，可直接发微信'); }
+    catch(e){ alert('复制失败，请手动选择文字复制'); }
+    document.body.removeChild(ta);
+  }
+
+  /* ================= 添加 ================= */
+  document.getElementById('addForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    const nameEl = document.getElementById('f-name');
+    const amtEl  = document.getElementById('f-amount');
+    const catEl  = document.getElementById('f-cat');
+    const dateEl = document.getElementById('f-date');
+    const dueEl  = document.getElementById('f-due');
+    const noteEl = document.getElementById('f-note');
+
+    const name = nameEl.value.trim();
+    const amount = parseFloat(amtEl.value);
+    if(!name){ alert('请填写「谁欠的 / 什么事」'); nameEl.focus(); return; }
+    if(!(amount > 0)){ alert('请输入正确的金额'); amtEl.focus(); return; }
+
+    items.push({
+      id: uid(),
+      name: name,
+      amount: amount,
+      paidAmount: 0,
+      category: catEl.value,
+      date: dateEl.value || todayStr(),
+      dueDate: dueEl.value || '',
+      note: noteEl.value.trim(),
+      paid: false,
+      createdAt: Date.now()
+    });
+
+    autoSortByPaid();
+    save(); render();
+
+    e.target.reset();
+    nameEl.focus();
+    toast('已添加');
+  });
+
+  /* ================= 搜索 / 排序 / 筛选 ================= */
+  const searchEl = document.getElementById('search');
+  let searchTimer = null;
+  searchEl.addEventListener('input', function(){
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(function(){
+      searchQuery = searchEl.value.trim();
+      render();
+    }, 120);
+  });
+
+  document.getElementById('sortSel').addEventListener('change', function(){
+    sortMode = this.value;
+    render();
+  });
+
+  document.getElementById('catSel').addEventListener('change', function(){
+    catFilter = this.value;
+    render();
+  });
+
+  /* ================= 清空 / 导出 / 导入 / 打印 ================= */
+  document.getElementById('clearAll').addEventListener('click', function(){
+    if(!items.length) return;
+    if(confirm('确定清空全部记录吗？此操作不可恢复。建议先「导出备份」。')){
+      items = [];
+      editingId = null;
+      save(); render();
+      toast('已清空');
+    }
+  });
+
+  document.getElementById('exportBtn').addEventListener('click', function(){
+    if(!items.length){ alert('还没有数据可导出'); return; }
+    const json = JSON.stringify(items, null, 2);
+    const blob = new Blob([json], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '欠款清单备份_' + todayStr() + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+    toast('已导出备份文件');
+  });
+
+  document.getElementById('importBtn').addEventListener('click', function(){
+    const raw = prompt('请粘贴之前导出的 JSON 数据：\n（如果不会，直接点「取消」）');
+    if(raw === null) return;
+    const text = raw.trim();
+    if(!text){ alert('内容为空'); return; }
+    try{
+      const data = JSON.parse(text);
+      if(!Array.isArray(data)) throw new Error('not array');
+      const cleaned = normalize(data);
+      if(!confirm('即将导入 ' + cleaned.length + ' 条记录，会覆盖当前列表，确定吗？')) return;
+      items = cleaned;
+      editingId = null;
+      autoSortByPaid();
+      save(); render();
+      toast('导入成功，共 ' + cleaned.length + ' 条');
+    }catch(err){
+      alert('导入失败：数据格式不正确。\n请确认复制的是完整的 JSON 内容。');
+    }
+  });
+
+  document.getElementById('printBtn').addEventListener('click', function(){
+    const pd = document.getElementById('printDate');
+    pd.textContent = '打印日期：' + todayStr() + '　共 ' + items.length + ' 条记录';
+    window.print();
+  });
+
+  /* ================= 主题 ================= */
+  const themeBtn = document.getElementById('themeBtn');
+  function applyTheme(){
+    const dark = localStorage.getItem('debt-theme') === 'dark';
+    document.body.classList.toggle('dark', dark);
+    themeBtn.textContent = dark ? '☀️' : '🌙';
+    themeBtn.title = dark ? '切换日间模式' : '切换夜间模式';
+  }
+  themeBtn.addEventListener('click', function(){
+    const dark = !document.body.classList.contains('dark');
+    localStorage.setItem('debt-theme', dark ? 'dark' : 'light');
+    applyTheme();
+  });
+  applyTheme();
+
+  /* ================= 启动 ================= */
+  autoSortByPaid();
+  render();
+})();
+</script>
+</body>
+</html>
